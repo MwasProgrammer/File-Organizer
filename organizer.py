@@ -25,7 +25,7 @@ def organize_junk():
         script_name = os.path.basename(__file__)
 
         # Skip the script itself and any actual folders.
-        if filename == script_name or os.path.isdir(filename):
+        if filename == script_name or os.path.isdir(filename) or filename == "directory_flattener.py":
             continue
 
         # Get the extension (e.g ".pdf")
