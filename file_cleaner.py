@@ -30,32 +30,49 @@ def file_cleaner():
                 print(f"Moved file: {filename} to folder: {folder_name}")
 
     for root, dirs, files in os.walk(current_directory):
-        print(f"Directory: {root}"
-              f"\nSubdirectories: {dirs}"
-              f"\nFiles: {files}\n")
-        
-        if script_name in files:
-            files.remove(script_name)  # Exclude the script itself from traversal
-
         if '.git' in dirs:
             dirs.remove('.git')  # Exclude .git directory from traversal
 
         if 'SecretVault' in dirs:
             dirs.remove('SecretVault')  # Exclude SecretVault directory from traversal
+
+        if 'PROJECTARCHIVE' in dirs:
+            dirs.remove('PROJECTARCHIVE')  # Exclude PROJECTARCHIVE directory from traversal
+
+        print(f"Directory: {root}"
+              f"\nSubdirectories: {dirs}"
+              f"\nFiles: {files} size: {sum(os.path.getsize(os.path.join(root, f)) for f in files)} bytes\n")
         
+        # To get the size of each file 
+        for filename in files:
+            file_size = os.path.getsize(os.path.join(root, filename))
+            print(f"File: {filename} size: {file_size} bytes\n")
+
+
+        
+        if script_name in files:
+            files.remove(script_name)  # Exclude the script itself from traversal
+
+            
         ARCHIVEDIR ={
             "PROJECTARCHIVE": ["OLD"]
         }
-        
-        for filename in files:
-            if os.path.getsize(os.path.join(root, filename)) > 250000:
-                print(f"File: {filename} is larger than 250KB, moving to PROJECTARCHIVE.")
 
+        # Check the size of each file and move it to the PROJECTARCHIVE folder if it's larger than 1KB
+        # 1KB = 1000 bytes
+        
+            
+        for filename in files:
+            if os.path.getsize(os.path.join(root, filename)) > 1000 or filename.startswith("OLD"):
+                print(f"File: {filename} is larger than 1KB, moving to PROJECTARCHIVE.")
+                # Create the PROJECTARCHIVE folder if it doesn't exist
+                if not os.path.exists("PROJECTARCHIVE"):
+                    os.mkdir("PROJECTARCHIVE")
+                    print(f"Created folder: PROJECTARCHIVE")
+                # Move the file to the PROJECTARCHIVE folder
+                shutil.move(os.path.join(root, filename), os.path.join("PROJECTARCHIVE", filename))
 
 if __name__ == "__main__":
     file_cleaner()
     print(f"Moved {len(os.listdir('Trash'))} files to the Trash folder.")
-
-
- 
- 
+    print(f"Moved {len(os.listdir('PROJECTARCHIVE'))} files to the PROJECTARCHIVE folder.")
