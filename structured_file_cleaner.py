@@ -15,7 +15,17 @@ def clean_trash(base_path, trash_map):
                     os.mkdir(folder_name )
                     print(f"Created folder: {folder_name}")
 
-                shutil.move(os.path.join(base_path, filename), os.path.join(folder_name, filename))
+                # Collision handling: If a file with the same name already exists in the destination folder, append a number to the filename
+                destination_path = os.path.join(folder_name, filename)
+                counter = 1
+                while os.path.exists(destination_path):
+                    base_name, ext = os.path.splitext(filename)
+                    new_filename = f"{base_name}_{counter}{ext}"
+                    destination_path = os.path.join(folder_name, new_filename)
+                    counter += 1         
+
+                source_path = os.path.join(base_path, filename) # Get the full path of the source file
+                shutil.move(source_path, destination_path) # Move the file to the destination folder
                 print(f"Moved file: {filename} to folder: {folder_name}")
                 # Increment the moved count
                 moved_count += 1
@@ -49,7 +59,19 @@ def archive_files(base_path, size_threshold_kb = 1, prefix = "OLD"):
                     os.mkdir(archive_folder)
                     print(f"Created folder: {archive_folder}")
 
-                shutil.move(filepath, os.path.join(archive_folder, filename))
+                # Collision handling: If a file with the same name already exists in the destination folder, append a number to the filename
+                destination_path = os.path.join(archive_folder, filename)
+                counter = 1
+                while os.path.exists(destination_path):
+                    base_name, ext = os.path.splitext(filename)
+                    new_filename = f"{base_name}_{counter}{ext}"
+                    destination_path = os.path.join(archive_folder, new_filename)
+                    counter += 1         
+
+                source_path = os.path.join(root, filename) # Get the full path of the source file
+                shutil.move(source_path, destination_path) # Move the file to the destination folder
+                print(f"Moved file: {filename} to folder: {archive_folder}")                        
+
 
                 moved_count += 1
         
