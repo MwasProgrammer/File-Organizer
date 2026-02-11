@@ -1,10 +1,28 @@
 import os
 import shutil
 
+# Collision handling
+#Overwrite checker function to prevent overwriting files with the same name in the destination folder
+def overwrite_checker(destination_folder, filename):
+    base_name, ext = os.path.splitext(filename)
+    final_path = os.path.join(destination_folder, filename)
+    counter = 1
+
+    # While loop to check if the file already exists in the destination folder
+    while os.path.exists(final_path):
+        new_filename = f"{base_name}_{counter}{ext}"
+        final_path = os.path.join(destination_folder, new_filename)
+        counter += 1
+
+    return final_path
+
+
+
 #trash directory configuartion using os.listdir() 
 def clean_trash(base_path, trash_map):
     # Iterate through the files in the base path
     moved_count = 0 # Counter to keep track of moved files
+    skipped_count = 0 # Counter to keep track of skipped files
 
     for filename in os.listdir(base_path):
         file_extension = os.path.splitext(filename)[1]
@@ -15,27 +33,29 @@ def clean_trash(base_path, trash_map):
                     os.mkdir(folder_name )
                     print(f"Created folder: {folder_name}")
 
-                # Collision handling: If a file with the same name already exists in the destination folder, append a number to the filename
-                destination_path = os.path.join(folder_name, filename)
-                counter = 1
-                while os.path.exists(destination_path):
-                    base_name, ext = os.path.splitext(filename)
-                    new_filename = f"{base_name}_{counter}{ext}"
-                    destination_path = os.path.join(folder_name, new_filename)
-                    counter += 1         
-
+                
                 source_path = os.path.join(base_path, filename) # Get the full path of the source file
-                shutil.move(source_path, destination_path) # Move the file to the destination folder
-                print(f"Moved file: {filename} to folder: {folder_name}")
-                # Increment the moved count
-                moved_count += 1
-    # After processing all files, return the count of moved files
-    return moved_count
+                destination_path = overwrite_checker(folder_name, filename)
+
+                # Error handling for moving files
+                try:
+                    shutil.move(source_path, destination_path) # Move the file to the destination folder
+                    print(f"Moved file: {filename} to folder: {folder_name}")
+                    # Increment the moved count
+                    moved_count += 1
+                except PermissionError:
+                    print(f"Permission denied: {filename}. Skipping this file.")
+                    skipped_count += 1
+                except Exception as e:
+                    print(f"Error moving file: {filename}. Error: {e}")
+    # After processing all files, return the count of moved files and skipped files
+    return moved_count, skipped_count
 
 # PROJECTARCHIVE directory configuration using os.walk()
 def archive_files(base_path, size_threshold_kb = 1, prefix = "OLD"):
     archive_folder = "PROJECTARCHIVE"
     moved_count = 0 # Counter to keep track of moved files
+    skipped_count = 0 # Counter to keep track of skipped files
 
     threshold_bytes = size_threshold_kb * 1024 # Convert KB to bytes
 
@@ -59,24 +79,24 @@ def archive_files(base_path, size_threshold_kb = 1, prefix = "OLD"):
                     os.mkdir(archive_folder)
                     print(f"Created folder: {archive_folder}")
 
-                # Collision handling: If a file with the same name already exists in the destination folder, append a number to the filename
-                destination_path = os.path.join(archive_folder, filename)
-                counter = 1
-                while os.path.exists(destination_path):
-                    base_name, ext = os.path.splitext(filename)
-                    new_filename = f"{base_name}_{counter}{ext}"
-                    destination_path = os.path.join(archive_folder, new_filename)
-                    counter += 1         
-
+                
                 source_path = os.path.join(root, filename) # Get the full path of the source file
-                shutil.move(source_path, destination_path) # Move the file to the destination folder
-                print(f"Moved file: {filename} to folder: {archive_folder}")                        
+                destination_path = overwrite_checker(archive_folder, filename)
 
+                # Error handling for moving files
+                try:
+                    shutil.move(source_path, destination_path) # Move the file to the destination folder
+                    print(f"Moved file: {filename} to folder: {archive_folder}")                        
 
-                moved_count += 1
+                    moved_count += 1
+                except PermissionError:
+                    print(f"Permission denied: {filename}. Skipping this file.")
+                    skipped_count += 1  
+                except Exception as e:
+                    print(f"Error moving file: {filename}. Error: {e}")
         
-    # After processing all files, return the count of moved files
-    return moved_count
+    # After processing all files, return the count of moved files and skipped files
+    return moved_count, skipped_count
 
 def main():
     print("Starting the file cleaner...")
@@ -84,18 +104,25 @@ def main():
     current_directory = os.getcwd()
 
     trash_configuration = {
-        "Trash": [".tmp", ".log"]
+        "Trash": [".tmp", ".log",".pdf"]
         }
     
-    cleaned_trash_count = clean_trash(current_directory, trash_configuration)
+    trash_moved, trash_skipped = clean_trash(current_directory, trash_configuration)
 
-    total_archived_files = archive_files(current_directory, size_threshold_kb=1, prefix="OLD")
+    archive_moved, archive_skipped = archive_files(current_directory, size_threshold_kb=1, prefix="OLD")
 
     print("\n", "-" * 50,  "\n")
     print("File cleaning completed.")
     print("\n", "-" * 50)
-    print(f"Finished cleaning. Total files moved to Trash: {cleaned_trash_count}")
-    print(f"Total files moved to PROJECTARCHIVE: {total_archived_files}")
+    # Summary table
+    #Header
+    print(f"{'Category':<20} | {'Moved':<10} | {'Skipped':<10}")
+    print(f"{'Trash':<20} | {trash_moved:<10} | {trash_skipped:<10}")
+    print(f"{'PROJECTARCHIVE':<20} | {archive_moved:<10} | {archive_skipped:<10}")
+
+    print("\n", "-" * 50)
+    print(f"Total files skipped: {trash_skipped + archive_skipped}")
+    print(f"Total files moved: {trash_moved + archive_moved}")
     print("\n"+"="*50)
 
 if __name__ == "__main__":
